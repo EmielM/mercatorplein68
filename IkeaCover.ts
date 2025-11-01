@@ -25,20 +25,35 @@ export class IkeaCover extends ZigbeeDevice {
 		return this.entity?.value?.state;
 	}
 
-	close(): void {
+	stopOrClose(): void {
 		if (this.entity?.value?.state === 'closing' || this.entity?.value?.state === 'opening') {
 			this.stop();
-			return;
+		} else {
+			this.close();
 		}
+	}
+
+	close(): void {
 		this.to(0.0);
 	}
 
-	open(): void {
+	stopOrOpen(): void {
 		if (this.entity?.value?.state === 'closing' || this.entity?.value?.state === 'opening') {
 			this.stop();
-			return;
+		} else {
+			this.open();
 		}
+	}
+
+	open(): void {
 		this.to(1.0);
+	}
+
+	isOpenOrOpening(): boolean | undefined {
+		if (this.entity?.value === undefined) {
+			return undefined;
+		}
+		return this.entity?.value?.state === 'opening' || this.entity.value.position == 1.0;
 	}
 
 	to(position: number): void {

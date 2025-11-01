@@ -36,6 +36,7 @@ const bedRoom = {
 	antiMusquito: new Outlet('34:10:f4:ff:fe:8b:23:05'),
 	buttonEmiel: new MarmitekButton('5c:02:72:ff:fe:0a:5f:e5'),
 	buttonGhis: new MarmitekButton('5c:02:72:ff:fe:0a:5f:ef'),
+	tapDialGhis: new HueTapDial('00:17:88:01:0e:92:4d:cb'),
 };
 const office = {
 	button: new IkeaButton('84:2e:14:ff:fe:8c:3d:c1'),
@@ -65,8 +66,8 @@ const babyRoomScenes = new SceneController({
 	lights: [babyRoom.floorLamp],
 	targets: {
 		off: [0],
-		dimmed: [0.4],
-		bright: [0.9],
+		dimmed: [0.2],
+		bright: [0.8],
 	},
 });
 
@@ -80,12 +81,12 @@ babyRoom.floorLampButton.onPressOn(() => {
 babyRoom.floorLampButton.onPressOff(() => babyRoomScenes.toScene('off'));
 
 babyRoom.coverButton.onPressUp(() => {
-	babyRoom.covers[0].open();
-	babyRoom.covers[1].open();
+	babyRoom.covers[0].stopOrOpen();
+	babyRoom.covers[1].stopOrOpen();
 });
 babyRoom.coverButton.onPressDown(() => {
-	babyRoom.covers[0].close();
-	babyRoom.covers[1].close();
+	babyRoom.covers[0].stopOrClose();
+	babyRoom.covers[1].stopOrClose();
 });
 
 // Unused
@@ -166,7 +167,7 @@ const hallLights = lights(hall);
 
 // Curtain closed is a great proxy for someone asleep
 function someoneSleeping() {
-	return !bedRoom.curtain.isOpen();
+	return bedRoom.curtain.isPartlyClosed();
 }
 
 // Someone enters (or leaves) the front door
@@ -206,23 +207,9 @@ tvIsOn.observe((isOn) => {
 });
 
 function toggleCurtain() {
-	const isOpen = bedRoom.curtain.isOpen();
-	console.log('toggleCurtain; wasOpen=', isOpen);
-	if (!isOpen) {
-		bedRoom.curtain.open();
-		babyRoom.covers[0].open();
-		babyRoom.covers[1].open();
-		bedRoom.antiMusquito.off();
-		if (isDark()) {
-			livingRoomScenes.toScene('dimmed');
-			kitchenScenes.toScene('dimmed');
-		}
-	} else {
-		bedRoom.curtain.close();
-		babyRoom.covers[0].close();
-		babyRoom.covers[1].close();
-		bedRoom.antiMusquito.on();
-	}
+	// Toggle between scene 1 and 4
+	const isScene4 = babyRoom.covers[1].isOpenOrOpening();
+	toCurtainScene(isScene4 ? 1 : 4);
 }
 
 function allAsleep() {
@@ -237,6 +224,35 @@ bedRoom.buttonEmiel.onPress(toggleCurtain);
 bedRoom.buttonGhis.onPress(toggleCurtain);
 bedRoom.buttonEmiel.onDoublePress(allAsleep);
 bedRoom.buttonGhis.onDoublePress(allAsleep);
+
+function toCurtainScene(scene: 1 | 2 | 3 | 4) {
+	if (scene === 1) {
+		bedRoom.curtain.to(0.4); // keep room for door
+		babyRoom.covers[0].close();
+		babyRoom.covers[1].close();
+	} else if (scene === 2) {
+		bedRoom.curtain.to(0.4); // keep room for door
+		babyRoom.covers[0].to(0.55);
+		babyRoom.covers[1].close();
+	} else if (scene === 3) {
+		bedRoom.curtain.open();
+		babyRoom.covers[0].to(0.55);
+		babyRoom.covers[1].close();
+	} else if (scene === 4) {
+		bedRoom.curtain.open();
+		babyRoom.covers[0].open();
+		babyRoom.covers[1].open();
+		if (isDark()) {
+			// Waking up, so when still dark, some lights in the living room
+			livingRoomScenes.toScene('dimmed');
+			kitchenScenes.toScene('dimmed');
+		}
+	}
+}
+bedRoom.tapDialGhis.onSceneSelect((scene) => {
+	console.log('scene', scene);
+	toCurtainScene(scene);
+});
 
 office.button.onPressOn(() => office.deskPower.on());
 office.button.onPressOff(() => office.deskPower.off());

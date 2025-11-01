@@ -44,6 +44,20 @@ export default class Cover extends Device {
 		if (this.entity.value === undefined) {
 			return undefined;
 		}
+		return this.entity.value === 0;
+	}
+
+	isPartlyOpen(): undefined | boolean {
+		if (this.entity.value === undefined) {
+			return undefined;
+		}
 		return this.entity.value > 0.0;
+	}
+
+	isPartlyClosed(): undefined | boolean {
+		if (this.entity.value === undefined) {
+			return undefined;
+		}
+		return this.entity.value < 1.0;
 	}
 }
